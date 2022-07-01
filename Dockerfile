@@ -6,12 +6,15 @@ LABEL org.opencontainers.image.licenses="MIT"
 LABEL org.opencontainers.image.title="All of Us Curation base image"
 LABEL org.opencontainers.image.description="The root image from which all curation images are dervived from."
 
-#* This will be the baseline paths from which work is build from
-ENV PROJECT="curation"
-ENV PROJECT_ROOT="/${PROJECT}"
+#* Paths from which work is build from
+ENV PROJECT_NAME="curation"
+ENV PROJECT_ROOT="/project/${PROJECT_NAME}"
 
 ENV VENV_PATH "${PROJECT_ROOT}/curation_venv"
 ENV VENV_ACTIVATE "${VENV_PATH}/bin/activate"
+
+ENV PATH=${VENV_PATH}/bin:$PATH
+ENV PYTHONPATH=${PROJECT_ROOT}:"${PYTHONPATH}"
 
 #* Install basic tools and dependencies
 RUN apt update \
@@ -37,11 +40,16 @@ RUN echo "deb [signed-by=/usr/share/keyrings/cloud.google.gpg] https://packages.
     google-cloud-cli
 
 #* Copy in requirements.txt and install python deps
-COPY --chmod=755 requirements.txt "${VENV_PATH}/requirements.txt"
+COPY requirements.txt "${PROJECT_ROOT}/requirements.txt"
 RUN python -m venv "${VENV_PATH}" \
-    && echo "source ${VENV_ACTIVATE}" | tee -a "${PROJECT_ROOT}/.bashrc" "${PROJECT_ROOT}/.profile" \
-    && echo "export PYTHONPATH=:${PROJECT_ROOT}:\"\${PYTHONPATH}\"" \
-    | tee -a "${PROJECT_ROOT}/.bashrc" "${PROJECT_ROOT}/.profile" \
+    && echo "source ${VENV_ACTIVATE}" \
     && . "${VENV_ACTIVATE}" \
     && python -m pip install --upgrade pip setuptools wheel \
-    && python -m pip install -r "${VENV_PATH}/requirements.txt"
+    && python -m pip install -r "${PROJECT_ROOT}/requirements.txt"
+
+#* CDR runtime environment
+ENV PROJECT_ID=""
+ENV RUN_AS_EMAIL=""
+ENV CT_DATASET_ID=""
+ENV SRC_SEROLOGY_DATASET_ID=""
+ENV RELEASE_TAG=""
